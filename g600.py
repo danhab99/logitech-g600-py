@@ -18,6 +18,31 @@ parser.add_argument('-c', '--config-file', help="Path to config file", required=
 
 args = parser.parse_args()
 
+def claimLockfile():
+  lockfile = open('/var/lock/g600', 'w')
+  lockfile.write(str(os.getpid()))
+  lockfile.close()
+
+if os.path.exists('/var/lock/g600'):
+  lockfile = open('/var/lock/g600', 'r')
+  oldpid = lockfile.readline()
+  lockfile.close()
+  if oldpid != '':
+    try:
+      os.kill(int(oldpid), 19)
+    except OSError as e:
+      if e.strerror == 'No such process': 
+        claimLockfile()
+      else:
+        print('Unable to claim process lock, exiting')
+        exit(1)
+    else:
+      claimLockfile()
+  else:
+    claimLockfile()
+else:
+  claimLockfile()
+
 logging.basicConfig(
   format="%(asctime)s [%(levelname)s] %(message)s", 
   level=logging.INFO, 

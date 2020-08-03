@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from evdev import InputDevice, categorize, ecodes
 import threading
 import logging

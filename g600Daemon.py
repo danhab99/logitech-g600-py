@@ -53,7 +53,6 @@ keymap = {
   'KEY_P': 'MOD', # MOD
 }
 
-os.makedirs('/var/socket', exist_ok=True)
 try:
   info('Unlinking old socket')
   os.unlink(server_address)
@@ -96,7 +95,7 @@ def socketListener():
   sock.listen(1)
 
   if args.user:
-    os.system('chown dan:dan -R ' + args.unix_socket)
+    os.system('chown -R ' + args.user + ':' + args.user + ' ' + args.unix_socket)
 
   info('Listening')
 

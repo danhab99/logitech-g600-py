@@ -61,7 +61,15 @@ config.read(args.config_file)
 Selected_Profile=0
 Enable_Modifier=False
 
-def setColor(color):
+def getSelectedProfile(item=None):
+  global Selected_Profile
+  if item:
+    return config[config.sections()[Selected_Profile]][item]
+  else:
+    return config.sections()[Selected_Profile]
+
+def setColor():
+  color = getSelectedProfile('color')
   info('Setting color to ' + color)
   subprocess.run('ratbagctl "Logitech Gaming Mouse G600" profile 0 led 0 set color ' + color, shell=True)
 
@@ -69,12 +77,9 @@ def setLight(state='on'):
   info('Turninng lights ' + state)
   subprocess.run('ratbagctl "Logitech Gaming Mouse G600" profile 0 led 0 set mode ' + state, shell=True)
 
-def flickLight(s):
+def flickLight():
   setLight('off')
   setLight('on')
-
-def getSelectedProfile():
-  return config.sections()[Selected_Profile]
 
 def changeProfile(d=1):
   global Selected_Profile
@@ -88,14 +93,14 @@ def changeProfile(d=1):
     Selected_Profile = lenSection
 
   info('Switching to ' + getSelectedProfile())
-  setColor(config[getSelectedProfile()]['color'])
+  setColor()
 
 class Event(LoggingEventHandler):
   def dispatch(self, event):
     info("Config changed")
     config.read(args.config_file)
     for i in range(3):
-      flickLight(0)
+      flickLight()
 
 observer = Observer()
 observer.schedule(Event(), args.config_file, recursive=True)
@@ -104,8 +109,8 @@ observer.start()
 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 sock.connect(args.unix_socket)
 
-setColor(config[getSelectedProfile()]['color'])
-flickLight(0)
+setColor()
+flickLight()
 info('Ready')
 
 while True:
@@ -130,7 +135,7 @@ while True:
 
   if isModifer and pressed:
     Enable_Modifier = True
-    print('Modifier enabled')
+    info('Modifier enabled')
     continue
 
   if Enable_Modifier:
@@ -138,12 +143,12 @@ while True:
 
   if isModifer and not pressed:
     Enable_Modifier = False
-    print('Modifier disabled')
+    info('Modifier disabled')
     continue
 
   try:
     info('Selecting %s from %s' % (cmdSelector, getSelectedProfile()))
-    cmd = config[getSelectedProfile()][cmdSelector]
+    cmd = getSelectedProfile(cmdSelector)
     info('Running command: ' + cmd)
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     

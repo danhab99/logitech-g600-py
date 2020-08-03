@@ -8,12 +8,38 @@ This repo contains scripts for a valid parser for the [Logitech G600 mouse](http
     - [State](#state)
     - [Keycode](#keycode)
   - [G600 Profile Manager](#g600-profile-manager)
+    - [Examples](#examples)
 
 ## Installation
 
-This driver uses [libratbag](https://github.com/libratbag/libratbag) to interface with the mouse. Please follow [these instructions](https://github.com/libratbag/libratbag/wiki/Installation) to install `libratbag` and `ratbagctl`.
+1. This driver uses [libratbag](https://github.com/libratbag/libratbag) to interface with the mouse. Please follow [these instructions](https://github.com/libratbag/libratbag/wiki/Installation) to install `libratbag` and `ratbagctl`.
 
-Then run `make install`. **BEWARE: THIS STEP WILL DESTROY ANY EXISTING BUTTON CONFIGURATION (your dpi settings should be safe)**
+2. Then run `make install`. **BEWARE: THIS STEP WILL DESTROY ANY EXISTING BUTTON CONFIGURATION (your dpi settings should be safe)**
+
+3. I recommend setting up `g600Daemon.py` as a systemd service add this service file to `/etc/systemd/system/g600.service`
+
+```ini
+[Unit]
+Description=G600 keypad parser
+
+[Service]
+ExecStart=/usr/bin/python3 /[PATH TO REPO]/g600Daemon.py --user [YOUR USERNAME HERE]
+Restart=on-failure
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+```
+
+4. Setup the service like this:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start g600.service
+sudo systemctl enable g600.service
+```
+
+5. `g600.py` should be run at the user terminal level. Personally I have it setup in my i3 config.
 
 ## G600D Unix Socket Protocol
 
@@ -76,6 +102,8 @@ optional arguments:
 
 I created a profile manager to accompany this driver. It runs a command for every G button. The config file is laid out like this:
 
+### Examples
+
 ```ini
 [INSERT PROFILE NAME HERE]
 color="ffaa11" #A hexadecimal color code to change the LEDs to when this profile is selected
@@ -96,3 +124,4 @@ Config events work like this:
 
 ```
 [MODIFIED/nothing for not modified]_[PRESSED/RELEASED]_[KEYCODE]=Command
+```

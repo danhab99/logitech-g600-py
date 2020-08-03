@@ -5,16 +5,26 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Current File",
+      "name": "Python: User Service",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": [
+        "-l",
+        "/dev/null",
+        "-c",
+        "~/.config/g600/profiles.conf"
+      ]
+    },
+    {
+      "name": "Python: Daemon",
       "type": "python",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
       "sudo": true,
-      "args": [
-        "--user",
-        "dan"
-      ]
+      "args": ["--user", "dan"]
     }
   ]
 }

@@ -102,30 +102,50 @@ optional arguments:
                         Path to config file
 ```
 
-I created a profile manager to accompany this driver. It runs a command for every G button. The config file is laid out like this:
+I created a profile manager to accompany this driver. It runs a command for every G button. The config file is an [ini](https://en.wikipedia.org/wiki/INI_file#:~:text=An%20INI%20file%20is%20a,sections%20that%20organize%20the%20properties.) file layed out like this:
+
+```ini
+["Name of profile here"]
+color="insert a hex color here, no #"
+(MOD_|)(KEYCODE)_(CMD|KEY)=.*
+```
+
+| Part | Meaning |
+|-|-|
+| (MOD_\|) | Add `mod_` to require the G-Shift button to be pressed |
+| (KEYCODE) | The key to bind to, 9 - 22 |
+| CMD | Run a command on pressed |
+| KEY | Bind this key sequence to the press and release |
 
 ### Examples
 
 ```ini
-[INSERT PROFILE NAME HERE]
-color="ffaa11" #A hexadecimal color code to change the LEDs to when this profile is selected
-[EVENT]=Command
+[i3]
+color=123456
+10_key=Super_L+f
+mod_10_key=Super_L+q
+11_key=Shift_L+Super_L+Right
+mod_11_key=Control_L+Super_L+Right
+9_key=Shift_L+Super_L+Left
+mod_9_key=Control_L+Super_L+Left
+13_key=Super_L+Return
+14_key=Super_L+c
+12_key=Super_L+w
+16_key=Super_L+Shift_L+space
+17_key=Super_L+h
+mod_17_key=Super_L+v
+20_key=Super_L+Shift_L+r
+18_key=Super_L+Shift_L+x
 
-# Examples:
-PRESSED_9=notify-send 'test' # Posts a notification when G9 is pressed
-MODIFIED_RELEASED_9=notify-send 'mod test' # Posts a notification when G-Shift is down and G9 is released
-
-[Gaming Profile]
+[overwatch]
 color="ffa200"
-PRESSED_10=xdotool key r # G10 for reload
-PRESSED_13=xdotool keydown v # Push to talk
-RELEASED_13=xdotool keyup v # Stop push to talk
-```
-
-Config events work like this:
-
-```
-[MODIFIED/nothing for not modified]_[PRESSED/RELEASED]_[KEYCODE]=Command
+10_key=r
+mod_10_key=r
+mod_11_key=shift
+11_key=e
+9_key=v
+12_key=x
+14_key=z
 ```
 
 ## Troubleshooting

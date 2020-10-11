@@ -9,6 +9,8 @@ This repo contains scripts for a valid parser for the [Logitech G600 mouse](http
     - [Keycode](#keycode)
   - [G600 Profile Manager](#g600-profile-manager)
     - [Examples](#examples)
+  - [Troubleshooting](#troubleshooting)
+    - [I'm getting inintentional keyboard presses!](#im-getting-inintentional-keyboard-presses)
 
 ## Installation
 
@@ -125,3 +127,35 @@ Config events work like this:
 ```
 [MODIFIED/nothing for not modified]_[PRESSED/RELEASED]_[KEYCODE]=Command
 ```
+
+## Troubleshooting
+
+### I'm getting inintentional keyboard presses!
+
+Easy solution:
+
+1. Run `xinput` annd identify the id of the mouse's keyboard:
+
+```bash
+$ xinput 
+⎡ Virtual core pointer                    	id=2	[master pointer  (3)]
+⎜   ↳ Virtual core XTEST pointer              	id=4	[slave  pointer  (2)]
+⎜   ↳ Logitech Gaming Mouse G600              	id=9	[slave  pointer  (2)]
+⎜   ↳ Gaming KB  Gaming KB  Consumer Control  	id=13	[slave  pointer  (2)]
+⎣ Virtual core keyboard                   	id=3	[master keyboard (2)]
+    ↳ Virtual core XTEST keyboard             	id=5	[slave  keyboard (3)]
+    ↳ Power Button                            	id=6	[slave  keyboard (3)]
+    ↳ Power Button                            	id=7	[slave  keyboard (3)]
+    ↳ USB PnP Audio Device                    	id=8	[slave  keyboard (3)]
+    ↳ Gaming KB  Gaming KB                    	id=11	[slave  keyboard (3)]
+    ↳ Gaming KB  Gaming KB  System Control    	id=12	[slave  keyboard (3)]
+    ↳ Gaming KB  Gaming KB  Keyboard          	id=14	[slave  keyboard (3)]
+    ↳ UVC Camera (046d:0825)                  	id=15	[slave  keyboard (3)]
+    ↳ DAC-X6 DAC-X6                           	id=16	[slave  keyboard (3)]
+    ↳ Gaming KB  Gaming KB  Consumer Control  	id=17	[slave  keyboard (3)]
+    ↳ Logitech Gaming Mouse G600 Keyboard     	id=10	[slave  keyboard (3)] <-- It's this one
+```
+
+2. Run `xinput disable [the id of the mouse's keyboard device]`
+
+This should disable the device as a keyboard but should still be avaliable for the daemon process.

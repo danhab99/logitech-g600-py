@@ -9,6 +9,7 @@ import os
 import argparse
 import subprocess
 import configparser
+import asyncio
 
 parser = argparse.ArgumentParser(description="The user process for Logitech G600")
 
@@ -36,12 +37,8 @@ if os.path.exists('/var/lock/g600'):
       else:
         print('Unable to claim process lock, exiting')
         exit(1)
-    else:
-      claimLockfile()
-  else:
-    claimLockfile()
-else:
-  claimLockfile()
+
+claimLockfile()
 
 logging.basicConfig(
   format="%(asctime)s [%(levelname)s] %(message)s", 
@@ -61,15 +58,22 @@ config.read(args.config_file)
 Selected_Profile=0
 Enable_Modifier=False
 
+def partialMatch(d, m, n=False):
+  return { k : d[k] for k in d.keys() if (True in [i in k for i in m]) != n}
+
 def getSelectedProfile(item=None):
   global Selected_Profile
   if item:
-    return config[config.sections()[Selected_Profile]][item]
+    block = config[config.sections()[Selected_Profile]]
+    return partialMatch(block, item)
   else:
     return config.sections()[Selected_Profile]
 
+def first(d):
+  return d[list(d.keys())[0]]
+
 def setColor():
-  color = getSelectedProfile('color')
+  color = first(getSelectedProfile(['color']))
   info('Setting color to ' + color)
   subprocess.run('ratbagctl "Logitech Gaming Mouse G600" profile 0 led 0 set color ' + color, shell=True)
 
@@ -95,6 +99,20 @@ def changeProfile(d=1):
   info('Switching to ' + getSelectedProfile())
   setColor()
 
+async def RunCommand(cmd):
+  proc = await asyncio.create_subprocess_shell(
+    cmd,
+    stdout=asyncio.subprocess.PIPE,
+    stderr=asyncio.subprocess.PIPE)
+
+  stdout, stderr = await proc.communicate()
+
+  logging.info(f'[{cmd!r} exited with {proc.returncode}]')
+  if stdout:
+      logging.info(f'[stdout]\n{stdout.decode()}')
+  if stderr:
+      logging.info(f'[stderr]\n{stderr.decode()}')
+
 class Event(LoggingEventHandler):
   def dispatch(self, event):
     info("Config changed")
@@ -106,17 +124,24 @@ observer = Observer()
 observer.schedule(Event(), args.config_file, recursive=True)
 observer.start()
 
-sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-sock.connect(args.unix_socket)
+def readSocket():
+  sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+  sock.connect(args.unix_socket)
+
+  buffer = bytearray()
+  while True:
+    l = sock.recv(1)
+    if l in b'\n':
+      yield buffer.decode("utf8")
+      buffer = bytearray()
+    else:
+      buffer += l
 
 setColor()
 flickLight()
 info('Ready')
 
-while True:
-  line = sock.recv(10)
-  line = line.decode("utf-8").strip()
-
+for line in readSocket():
   pressed = line[0] == '-'
   code = line[1:]
   isModifer = code == 'MOD'
@@ -131,34 +156,27 @@ while True:
     changeProfile(-1)
     continue
 
-  cmdSelector = '%s_%s' % ('PRESSED' if pressed else 'RELEASED', code)
-
-  if isModifer and pressed:
-    Enable_Modifier = True
-    info('Modifier enabled')
-    continue
-
-  if Enable_Modifier:
-    cmdSelector = 'MODIFIED_' + cmdSelector
-
-  if isModifer and not pressed:
-    Enable_Modifier = False
-    info('Modifier disabled')
+  if isModifer:
+    Enable_Modifier = pressed
+    info('Modifier ' + str(pressed))
     continue
 
   try:
-    info('Selecting %s from %s' % (cmdSelector, getSelectedProfile()))
-    cmd = getSelectedProfile(cmdSelector)
-    info('Running command: ' + cmd)
-    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    c = getSelectedProfile(['down' if pressed else 'up', code])
+    if len(c) > 0:
+      c = partialMatch(c, ['mod'], not Enable_Modifier)
+
+      if len(c) > 0:
+        verb = list(c.keys())[0].split('_')[-1]
+        cmd = c[list(c.keys())[0]]
+
+        if verb == 'cmd' and pressed:
+          info('Running command: ' + cmd)
+          asyncio.run(RunCommand(cmd))
+        
+        if verb == "key":
+          os.system("xdotool %s %s" % ("keydown" if pressed else "keyup", cmd))
+          continue
     
-    while True:
-      output = process.stdout.readline()
-      if process.poll() is not None:
-        break
-      if output:
-        info('Subprocess: ' + str(output).strip())
-    info('Subprocess exited with code ' + str(process.poll()))
-      
   except Exception as inst:
     error(str(inst))

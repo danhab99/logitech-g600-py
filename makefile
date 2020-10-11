@@ -17,4 +17,4 @@ install:
 	ratbagctl "Logitech Gaming Mouse G600" profile 0 button 18 action set macro KEY_K
 	ratbagctl "Logitech Gaming Mouse G600" profile 0 button 19 action set macro KEY_L
 	
-	
+	xinput disable $(xinput | grep -Po "(?<=Logitech Gaming Mouse G600 Keyboard).*" | grep -Po "(?<=id=)\d+")

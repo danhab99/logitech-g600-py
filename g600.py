@@ -19,13 +19,15 @@ parser.add_argument('-c', '--config-file', help="Path to config file", required=
 
 args = parser.parse_args()
 
+LOCK_FILE = "/tmp/g600.locl"
+
 def claimLockfile():
-  lockfile = open('/var/lock/g600', 'w')
+  lockfile = open(LOCK_FILE, 'w')
   lockfile.write(str(os.getpid()))
   lockfile.close()
 
-if os.path.exists('/var/lock/g600'):
-  lockfile = open('/var/lock/g600', 'r')
+if os.path.exists(LOCK_FILE):
+  lockfile = open(LOCK_FILE, 'r')
   oldpid = lockfile.readline()
   lockfile.close()
   if oldpid != '':

@@ -74,19 +74,22 @@ def sendAll(data):
 
 def readDevice():
   info('Reading device')
-  for event in device.read_loop():
-    if event.type == ecodes.EV_KEY:
-      cat = categorize(event)
-      if cat.keystate != 2:
-        if cat.keystate == 1:
-          state = '-'
-        else:
-          state = '+'
-        key = keymap[cat.keycode]
+  try:
+    for event in device.read_loop():
+      if event.type == ecodes.EV_KEY:
+        cat = categorize(event)
+        if cat.keystate != 2:
+          if cat.keystate == 1:
+            state = '-'
+          else:
+            state = '+'
+          key = keymap[cat.keycode]
 
-        gEvent = state + key + '\n'
-        info(gEvent)
-        sendAll(str(gEvent))
+          gEvent = state + key + '\n'
+          info(gEvent)
+          sendAll(str(gEvent))
+  except Exception as e:
+    error(str(e))
 
 def socketListener():
   info('Setting up socket')
@@ -100,9 +103,12 @@ def socketListener():
   info('Listening')
 
   while True:
-    conn, addr = sock.accept()
-    info('New socket')
-    sockets.append(conn)
+    try:
+      conn, addr = sock.accept()
+      info('New socket')
+      sockets.append(conn)
+    except Exception as e:
+      error(str(e))
 
 socketThread = threading.Thread(target=socketListener)
 readingThread = threading.Thread(target=readDevice)

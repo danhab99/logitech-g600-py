@@ -19,7 +19,7 @@ parser.add_argument('-c', '--config-file', help="Path to config file", required=
 
 args = parser.parse_args()
 
-LOCK_FILE = "/tmp/g600.locl"
+LOCK_FILE="/tmp/g600.lock"
 
 def claimLockfile():
   lockfile = open(LOCK_FILE, 'w')

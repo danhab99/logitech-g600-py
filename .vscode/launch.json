@@ -10,12 +10,7 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "args": [
-        "-l",
-        "/dev/null",
-        "-c",
-        "~/.config/g600/profiles.conf"
-      ]
+      "args": ["-l", "/dev/null", "-c", "./profiles.json"]
     },
     {
       "name": "Python: Daemon",

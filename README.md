@@ -10,7 +10,7 @@ This repo contains scripts for a valid parser for the [Logitech G600 mouse](http
   - [G600 Profile Manager](#g600-profile-manager)
     - [Examples](#examples)
   - [Troubleshooting](#troubleshooting)
-    - [I'm getting inintentional keyboard presses!](#im-getting-inintentional-keyboard-presses)
+    - [I'm getting unintentional keyboard presses!](#im-getting-unintentional-keyboard-presses)
 
 ## Installation
 
@@ -102,55 +102,73 @@ optional arguments:
                         Path to config file
 ```
 
-I created a profile manager to accompany this driver. It runs a command for every G button. The config file is an [ini](https://en.wikipedia.org/wiki/INI_file#:~:text=An%20INI%20file%20is%20a,sections%20that%20organize%20the%20properties.) file layed out like this:
+I created a profile manager to accompany this driver. It runs a command for every G button. The config file is a JSON file layed out like this:
 
-```ini
-["Name of profile here"]
-color="insert a hex color here, no #"
-(MOD_|)(KEYCODE)_(CMD|KEY)=.*
+```json
+[
+  {
+    "name": "profile name",
+    "color": "the color to show on the led panel e.x. #89abcd",
+    "normal": { // actions to be performed without the G-Shift button
+      "key code": {
+        "key": "the key to press", // or
+        "cmd": "a command to run"
+      }
+      // .
+      // .
+      // .
+    },
+    "mod": { // actions to be performed with the G-Shift button
+      "key code": {
+        "key": "the key to press", // or
+        "cmd": "a command to run"
+      }
+      // .
+      // .
+      // .
+    }
+  }
+]
 ```
-
-| Part | Meaning |
-|-|-|
-| (MOD_\|) | Add `mod_` to require the G-Shift button to be pressed |
-| (KEYCODE) | The key to bind to, 9 - 22 |
-| CMD | Run a command on pressed |
-| KEY | Bind this key sequence to the press and release |
 
 ### Examples
 
-```ini
-[i3]
-color=123456
-10_key=Super_L+f
-mod_10_key=Super_L+q
-11_key=Shift_L+Super_L+Right
-mod_11_key=Control_L+Super_L+Right
-9_key=Shift_L+Super_L+Left
-mod_9_key=Control_L+Super_L+Left
-13_key=Super_L+Return
-14_key=Super_L+c
-12_key=Super_L+w
-16_key=Super_L+Shift_L+space
-17_key=Super_L+h
-mod_17_key=Super_L+v
-20_key=Super_L+Shift_L+r
-18_key=Super_L+Shift_L+x
-
-[overwatch]
-color="ffa200"
-10_key=r
-mod_10_key=r
-mod_11_key=shift
-11_key=e
-9_key=v
-12_key=x
-14_key=z
+```json
+[ 
+  {
+    "name": "i3",
+    "color": "ff7869",
+    "normal": {
+      "10": { "key": "Super_L+f" },
+      "11": { "key": "Shift_L+Super_L+Right" },
+      "12": { "key": "Super_L+w" },
+      "13": { "key": "Super_L+Return" },
+      "14": { "key": "Super_L+c" },
+      "16": { "key": "Super_L+Shift_L+space" },
+      "17": { "key": "Super_L+h" },
+      "18": { "key": "alt+backslash" },
+      "19": { "cmd": "./.asciishrug.sh" },
+      "20": { "key": "Super_L+Shift_L+r" },
+      "9": { "key": "Shift_L+Super_L+Left" }
+    },
+    "mod": {
+      "10": { "key": "Super_L+q" },
+      "11": { "key": "Control_L+Super_L+Right" },
+      "9": { "key": "Control_L+Super_L+Left" },
+      "17": { "key": "Super_L+v" },
+      "20": { "key": "Super_L+Shift_L+x" },
+      "18": { "key": "Super_L+Shift_L+x" },
+      "13": { "key": "playerctl play-pause" },
+      "14": { "key": "playerctl next" },
+      "12": { "key": "playerctl previous" }
+    }
+  },
+]
 ```
 
 ## Troubleshooting
 
-### I'm getting inintentional keyboard presses!
+### I'm getting unintentional keyboard presses!
 
 Easy solution:
 

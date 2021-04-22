@@ -4,16 +4,15 @@ from watchdog.events import LoggingEventHandler
 
 import logging
 import socket
-import sys
 import os
 import argparse
 import subprocess
-import configparser
+import json
 import asyncio
 
 parser = argparse.ArgumentParser(description="The user process for Logitech G600")
 
-parser.add_argument('-u', '--unix-socket', help="Path to UNIX socket", default='/var/socket/g600', metavar='unixsocket')
+parser.add_argument('-u', '--unix-socket', help="Path to UNIX socket", default='/tmp/g600.socket', metavar='unixsocket')
 parser.add_argument('-l', '--log-file', help="Path to log file", default='/var/log/g600.log', metavar='logfile')
 parser.add_argument('-c', '--config-file', help="Path to config file", required=True, metavar="configfile")
 
@@ -55,27 +54,22 @@ info = logging.info
 warn = logging.warn
 error = logging.error
 
-config = configparser.ConfigParser()
-config.read(args.config_file)
+config=list()
 Selected_Profile=0
 Enable_Modifier=False
 
-def partialMatch(d, m, n=False):
-  return { k : d[k] for k in d.keys() if (True in [i in k for i in m]) != n}
+def readConfig():
+  global config
+  with open(args.config_file, 'r') as f:
+    config = json.load(f)
 
-def getSelectedProfile(item=None):
+def getSelectedProfile():
   global Selected_Profile
-  if item:
-    block = config[config.sections()[Selected_Profile]]
-    return partialMatch(block, item)
-  else:
-    return config.sections()[Selected_Profile]
-
-def first(d):
-  return d[list(d.keys())[0]]
+  global config
+  return config[Selected_Profile]
 
 def setColor():
-  color = first(getSelectedProfile(['color']))
+  color = getSelectedProfile()["color"]
   info('Setting color to ' + color)
   subprocess.run('ratbagctl "Logitech Gaming Mouse G600" profile 0 led 0 set color ' + color, shell=True)
 
@@ -89,8 +83,9 @@ def flickLight():
 
 def changeProfile(d=1):
   global Selected_Profile
+  global config
   Selected_Profile = Selected_Profile + d
-  lenSection = len(config.sections()) - 1
+  lenSection = len(config) - 1
 
   if Selected_Profile > lenSection:
     Selected_Profile = 0
@@ -98,7 +93,7 @@ def changeProfile(d=1):
   if Selected_Profile < 0:
     Selected_Profile = lenSection
 
-  info('Switching to ' + getSelectedProfile())
+  info('Switching to ' + getSelectedProfile()["name"])
   setColor()
 
 async def RunCommand(cmd):
@@ -111,17 +106,18 @@ async def RunCommand(cmd):
 
   logging.info(f'[{cmd!r} exited with {proc.returncode}]')
   if stdout:
-      logging.info(f'[stdout]\n{stdout.decode()}')
+    logging.info(f'[stdout]\n{stdout.decode()}')
   if stderr:
-      logging.info(f'[stderr]\n{stderr.decode()}')
+    logging.info(f'[stderr]\n{stderr.decode()}')
 
 class Event(LoggingEventHandler):
   def dispatch(self, event):
     info("Config changed")
-    config.read(args.config_file)
-    for i in range(3):
+    readConfig()
+    for _ in range(3):
       flickLight()
 
+readConfig()
 observer = Observer()
 observer.schedule(Event(), args.config_file, recursive=True)
 observer.start()
@@ -130,14 +126,11 @@ def readSocket():
   sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
   sock.connect(args.unix_socket)
 
-  buffer = bytearray()
-  while True:
-    l = sock.recv(1)
-    if l in b'\n':
-      yield buffer.decode("utf8")
-      buffer = bytearray()
-    else:
-      buffer += l
+  sockFile = sock.makefile()
+
+  with sockFile:
+    while True:
+      yield sockFile.readline().strip()
 
 setColor()
 flickLight()
@@ -164,21 +157,26 @@ for line in readSocket():
     continue
 
   try:
-    c = getSelectedProfile(['down' if pressed else 'up', code])
-    if len(c) > 0:
-      c = partialMatch(c, ['mod'], not Enable_Modifier)
-
-      if len(c) > 0:
-        verb = list(c.keys())[0].split('_')[-1]
-        cmd = c[list(c.keys())[0]]
-
-        if verb == 'cmd' and pressed:
-          info('Running command: ' + cmd)
-          asyncio.run(RunCommand(cmd))
-        
-        if verb == "key":
-          os.system("xdotool %s %s" % ("keydown" if pressed else "keyup", cmd))
-          continue
+    profile = getSelectedProfile()
     
+    if Enable_Modifier:
+      keySet = profile["mod"]
+    else:
+      keySet = profile["normal"]
+
+    action = keySet[code]
+
+    if action:
+      if "key" in action:
+        if pressed:
+          info("Pressed key " + action["key"])
+          os.system("xdotool keydown %s" % (action["key"]))
+        else:
+          info("Released key " + action["key"])
+          os.system("xdotool keyup %s" % (action["key"]))
+      elif "cmd" in action:
+        cmd = action["cmd"]
+        info('Running command: ' + cmd)
+        asyncio.run(RunCommand(cmd))
   except Exception as inst:
     error(str(inst))
